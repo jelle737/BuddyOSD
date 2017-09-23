@@ -8,6 +8,9 @@
 * **But don't get your hopes up, this is work in progres and not functional at this moment.**
 * **It's not a ground OSD in a way that it does not show regular OSD features, only overlays 'friend's plane'**
 
+More information about Light Telemetry: https://github.com/iNavFlight/inav/wiki/Lightweight-Telemetry-(LTM)
+
+
 ## Support
 
 * Maybe there will be a wiki in the future.
@@ -21,4 +24,7 @@ The license is GPL3.
 ## Project/Fork History
 
 Based on GhettOSD: https://github.com/KipK/Ghettostation
-Using updated LTM files: https://github.com/sppnk/LTM-Telemetry-OLED
+                
+ - GhettOSD:      Minimosd software for ground osd within the Ghettostation.
+
+ Updated LTM libraries: https://github.com/sppnk/LTM-Telemetry-OLED
