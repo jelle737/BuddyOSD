@@ -20,6 +20,5 @@ The license is GPL3.
 
 ## Project/Fork History
 
-Based on GhettOSD
-                
- - GhettOSD:      Minimosd software for ground osd within the Ghettostation.
+Based on GhettOSD: https://github.com/KipK/Ghettostation
+Using updated LTM files: https://github.com/sppnk/LTM-Telemetry-OLED
