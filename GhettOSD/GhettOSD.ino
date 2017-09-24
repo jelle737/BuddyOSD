@@ -44,13 +44,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 /* **************** MAIN PROGRAM - MODULES ******************** */
 /* ************************************************************ */
 
-#undef PROGMEM 
-#define PROGMEM __attribute__(( section(".progmem.data") )) 
 
-#undef PSTR 
-#define PSTR(s) (__extension__({static prog_char __c[] PROGMEM = (s); &__c[0];})) 
-
-#define isPAL 1
 
 /* **********************************************/
 /* ***************** INCLUDES *******************/
@@ -59,7 +53,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 //#define FORCEINIT  // You should never use this unless you know what you are doing 
 
 // AVR Includes
-#include <FastSerial.h>
+#include <AltSoftSerial.h>  
 #include <math.h>
 #include <inttypes.h>
 #include <avr/pgmspace.h>
@@ -70,75 +64,49 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 #include "wiring.h"
 #endif
 #include <EEPROM.h>
-#include <Metro.h>
 
 #ifdef membug
 #include <MemoryFree.h>
 #endif
 
-// Configurations
-#include "OSD_Config.h"
-#include "ArduCam_Max7456.h"
-#include "OSD_Vars.h"
-#include "OSD_Func.h"
-#include "Lighttelemetry.cpp"
+
+#include "Lighttelemetry.h"
+#include "Max7456.h"
+
+//#define LOADFONT
 
 /* *************************************************/
 /* ***************** DEFINITIONS *******************/
 
 //OSD Hardware 
-//#define ArduCAM328
-#define MinimOSD
+//#define MinimOSD
+#define TELEMETRY_SPEED_MASTER  2400  // How fast our master LTM telemetry is coming to Serial port
+#define TELEMETRY_SPEED_SLAVE 2400 // How fast our slave LTM telemetry is coming to Serial port
 
-#define TELEMETRY_SPEED  57600  // How fast our LTM telemetry is coming to Serial port
-#define BOOTTIME         4000   // Time in milliseconds that we show boot loading bar and wait user input
 
 // Objects and Serial definitions
-FastSerialPort0(Serial);
-OSD osd; //OSD object 
+AltSoftSerial slaveSerial(8, 9);
+//OSD osd; //OSD object 
 
-Metro osdMetro = Metro(20);  //( 50hz )
-
-
+//Metro osdMetro = Metro(20);  //( 50hz )
+LightTelemetry ltmMaster;
+LightTelemetry ltmSlave;
+Max7456 OSD;
 
 /* **********************************************/
 /* ***************** SETUP() *******************/
 
 void setup() 
 {
-#ifdef ArduCAM328
-    pinMode(10, OUTPUT); // USB ArduCam Only
-#endif
-    pinMode(MAX7456_SELECT,  OUTPUT); // OSD CS
+    OSD.init();
+//    pinMode(MAX7456_SELECT,  OUTPUT); // OSD CS
 
-    Serial.begin(TELEMETRY_SPEED);
-
-
-#ifdef membug
-    Serial.println(freeMem());
-#endif
+    Serial.begin(TELEMETRY_SPEED_MASTER);
+    slaveSerial.begin(TELEMETRY_SPEED_SLAVE); 
 
     // Prepare OSD for displaying 
-    unplugSlaves();
-    osd.init();
-
-    // Start 
-    startPanels();
-    delay(500);
-
-    // OSD debug for development (Shown at start)
-#ifdef membug
-    osd.setPanel(1,1);
-    osd.openPanel();
-    osd.printf("%i",freeMem()); 
-    osd.closePanel();
-#endif
-
-    // Just to easy up development things
-#ifdef FORCEINIT
-    InitializeOSD();
-#endif
-
+//    unplugSlaves();
+ 
 
     // Check EEPROM to see if we have initialized it already or not
     // also checks if we have new version that needs EEPROM reset
@@ -151,16 +119,16 @@ void setup()
 //    }
 
     // Get correct panel settings from EEPROM
-    readSettings();
-    for(panel = 0; panel < npanels; panel++) readPanelSettings();
-    panel = 0; //set panel to 0 to start in the first navigation screen
-    // Show bootloader bar
-    //loadBar();
-    delay(2000);
-    Serial.flush();
+//    readSettings();
+//    for(panel = 0; panel < npanels; panel++) readPanelSettings();
+//    panel = 0; //set panel to 0 to start in the first navigation screen
+//    delay(2000);
+//    Serial.flush();
 
     // House cleaning, clear display and enable timers
-    osd.clear();
+//    osd.clear();
+    ltmMaster.init(&Serial);
+    ltmSlave.init(&slaveSerial);
 
 } // END of setup();
 
@@ -171,20 +139,50 @@ void setup()
 
 // Mother of all happenings, The loop()
 // As simple as possible.
+
 void loop() 
 {
-    ltm_read();
-    
-//    if (LTMpassed = 1) {  
-//       LTMpassed = 0;
-//     }
-     if (osdMetro.check() == 1) {
-       osd_refresh(); 
-     }
+    #ifdef LOADFONT
+        uint8_t fontStatus = 0;
+        switch(fontStatus) {
+            case 0:
+            //OSD.writeString_P("DO NOT POWER OFF", 32);
+            //OSD.drawScreen();      
+            delay(3000);
+            //OSD.displayFont();  
+            //OSD.writeString_P("SCREEN WILL GO BLANK", 32);
+            //OSD.drawScreen();
+            fontStatus++;
+            delay(3000);      
+            break;
+            case 1:
+            //OSD.updateFont();
+            //OSD.init(); 
+            //OSD.writeString_P("UPDATE COMPLETE", 32);
+            //OSD.displayFont();  
+            //OSD.drawScreen();
+            fontStatus++;
+            break;
+        }
+//        digitalWrite(LEDPIN,LOW);
+        while(true);
+
+    #else //LOADFONT
+
+
+      ltmMaster.read();
+      ltmSlave.read();
+ //     ltmMaster.uav_rssi+ltmMaster.uav_linkquality;
+    #endif //LOADFONT
+
 }
+
+
+
 
 /* *********************************************** */
 /* ******** functions used in main loop() ******** */
+/*
 void osd_refresh()
 {
     setHeadingPatern();  // generate the heading patern
@@ -204,8 +202,5 @@ void osd_refresh()
 
 void unplugSlaves(){
     //Unplug list of SPI
-#ifdef ArduCAM328
-    digitalWrite(10,  HIGH); // unplug USB HOST: ArduCam Only
-#endif
     digitalWrite(MAX7456_SELECT,  HIGH); // unplug OSD
-}
+}*/
