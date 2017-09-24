@@ -74,6 +74,51 @@ void Max7456::writeString_P(const char *string, int Adresse){
 
 void Max7456::drawScreen(){
 
+    enable();
+
+    send(MAX7456ADD_DMAH, 0);
+    send(MAX7456ADD_DMAL, 0);
+    send(MAX7456ADD_DMM, 1);
+
+    //#ifdef USE_VSYNC
+    //MAX7456_WaitVSYNC();
+    //#endif
+
+    for(uint16_t xx = 0; xx < MAX_screen_size; ++xx) {
+    //#ifdef USE_VSYNC
+    //    // We don't actually need this?
+    //    if (xx == 240)
+    //        MAX7456_WaitVSYNC(); // Don't need this?
+    //#endif
+
+    //#ifdef INVERTED_CHAR_SUPPORT
+    //    bool invActive = false;
+    //    if (!invActive && bitISSET(screenAttr, xx)) {
+    //    MAX7456_Send(MAX7456ADD_DMM, 1|(1<<3));
+    //    invActive = true;
+    //    } else if (invActive && bitISCLR(screenAttr, xx)) {
+    //    MAX7456_Send(MAX7456ADD_DMM, 1);
+    //    invActive = false;
+    //    }
+    //#endif
+
+        send(MAX7456ADD_DMDI, screen[xx]);
+
+    //#ifdef CANVAS_SUPPORT
+    //    if (!canvasMode) // Don't erase in canvas mode
+    //#endif
+        //{
+        screen[xx] = ' ';  //Jelle: Needs clearing after putting on screen?
+        //#ifdef INVERTED_CHAR_SUPPORT
+        //bitCLR(screenAttr, xx);
+        //#endif
+        //}
+    }
+
+    send(MAX7456ADD_DMDI, END_string);
+    send(MAX7456ADD_DMM, 0);
+
+    disable();
 
 }
 
@@ -82,8 +127,26 @@ void Max7456::send(uint8_t add, uint8_t data){
   spi_transfer(data);
 }
 
-void Max7456::writeNVM(uint8_t char_address){
+void Max7456::writeNVM(uint8_t char_address, uint8_t* fontData){
+    enable();
+    send(MAX7456ADD_VM0, (MAX_screen_size==480?VIDEO_MODE_PAL:VIDEO_MODE_NTSC));
+    send(MAX7456ADD_CMAH, char_address); // set start address high
 
+    for(uint8_t x = 0; x < 54; x++) {// write out 54 bytes of character to shadow ram // 54 was NVM_ram_size
+        send(MAX7456ADD_CMAL, x); // set start address low
+        send(MAX7456ADD_CMDI, fontData[x]);
+    }
+
+    // transfer 54 bytes from shadow ram to NVM
+    send(MAX7456ADD_CMM, WRITE_nvr);
+
+    // wait until bit 5 in the status register returns to 0 (12ms)
+    while ((spi_transfer(MAX7456ADD_STAT) & STATUS_reg_nvr_busy) != 0x00);
+
+    send(MAX7456ADD_VM0, OSD_ENABLE|VERTICAL_SYNC_NEXT_VSYNC|(MAX_screen_size==480?VIDEO_MODE_PAL:VIDEO_MODE_NTSC)); // turn on screen next vertical
+    
+    disable();
+    //delay(20);
 
 }
 
@@ -93,13 +156,29 @@ void Max7456::checkStatus(void){
 }
 
 void Max7456::displayFont(void){
-
-
+    for(uint8_t x = 0; x < 255; x++) {
+        screen[90+x] = x;
+    }
 }
 
 void Max7456::updateFont(void){
-
-
+    for(uint8_t x = 0; x < 255; x++){
+        uint8_t fontData[54];
+        for(uint8_t i = 0; i < 54; i++){
+          #ifdef LOADFONT
+            fontData[i] = (uint8_t)pgm_read_byte(fontdata+(64*x)+i);
+            #endif
+        }
+        writeNVM(x, &fontData[0]);
+        //ledstatus=!ledstatus;
+        /*if (ledstatus==true){
+            digitalWrite(LEDPIN,HIGH);
+        }
+        else{
+            digitalWrite(LEDPIN,LOW);
+        }*/
+        //delay(20); // Shouldn't be needed due to status reg wait.
+    }
 }
 
 

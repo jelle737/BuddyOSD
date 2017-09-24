@@ -147,26 +147,25 @@ void loop()
         switch(fontStatus) {
             case 0:
             //OSD.writeString_P("DO NOT POWER OFF", 32);
-            //OSD.drawScreen();      
+            OSD.drawScreen();      
             delay(3000);
-            //OSD.displayFont();  
+            OSD.displayFont();  
             //OSD.writeString_P("SCREEN WILL GO BLANK", 32);
-            //OSD.drawScreen();
+            OSD.drawScreen();
             fontStatus++;
             delay(3000);      
             break;
             case 1:
-            //OSD.updateFont();
-            //OSD.init(); 
+            OSD.updateFont();
+            OSD.init(); 
             //OSD.writeString_P("UPDATE COMPLETE", 32);
-            //OSD.displayFont();  
-            //OSD.drawScreen();
+            OSD.displayFont();  
+            OSD.drawScreen();
             fontStatus++;
             break;
         }
 //        digitalWrite(LEDPIN,LOW);
         while(true);
-
     #else //LOADFONT
 
 

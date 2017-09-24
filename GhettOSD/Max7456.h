@@ -3,12 +3,16 @@
 
 #include "Arduino.h"
 
-# define DATAOUT          11 // MOSI
-# define DATAIN           12 // MISO
-# define SPICLOCK         13 // sck
-# define VSYNC             2 // INT0
-# define MAX7456SELECT     6 // ss
-# define MAX7456RESET     10 // RESET
+#ifdef LOADFONT
+#include "Max7456font.h"
+#endif
+
+#define DATAOUT          11 // MOSI
+#define DATAIN           12 // MISO
+#define SPICLOCK         13 // sck
+#define VSYNC             2 // INT0
+#define MAX7456SELECT     6 // ss
+#define MAX7456RESET     10 // RESET
 
 #define MAX7456ADD_VM0          0x00  //0b0011100// 00 // 00             ,0011100
 #define MAX7456ADD_VM1          0x01
@@ -42,6 +46,33 @@
 #define MAX7456ADD_OSDBL        0x6c
 #define MAX7456ADD_STAT         0xA0
 
+//MAX7456 commands
+
+#define WRITE_TO_MAX7456
+#define NVM_ram_size 54
+
+#define CLEAR_display 0x04
+#define CLEAR_display_vert 0x06
+#define END_string 0xff
+#define WRITE_nvr 0xa0
+// with NTSC
+#define ENABLE_display 0x08
+#define ENABLE_display_vert 0x0c
+//#define MAX7456_reset 0x02
+#define DISABLE_display 0x00
+#define STATUS_reg_nvr_busy 0x20
+
+// video mode register 0 bits
+#define VIDEO_BUFFER_DISABLE 0x01
+//#define MAX7456_RESET 0x02
+#define VERTICAL_SYNC_NEXT_VSYNC 0x04
+#define OSD_ENABLE 0x08
+#define SYNC_MODE_AUTO 0x00
+#define SYNC_MODE_INTERNAL 0x30
+#define SYNC_MODE_EXTERNAL 0x20
+#define VIDEO_MODE_PAL 0x40
+#define VIDEO_MODE_NTSC 0x00
+
 
 class Max7456{
     public:
@@ -53,10 +84,11 @@ class Max7456{
         void writeString_P(const char *string, int Adresse);
         void drawScreen();
         void send(uint8_t add, uint8_t data);
-        void writeNVM(uint8_t char_address);
+        void writeNVM(uint8_t char_address, uint8_t* fontData);
         void checkStatus();
         void displayFont();
         void updateFont();
+        char screen[480];
     private:
         void setHardwarePorts();
         void hwReset();
