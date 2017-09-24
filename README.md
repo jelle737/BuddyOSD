@@ -28,3 +28,4 @@ Based on GhettOSD: https://github.com/KipK/Ghettostation
  - GhettOSD:      Minimosd software for ground osd within the Ghettostation.
 
  Updated LTM libraries: https://github.com/sppnk/LTM-Telemetry-OLED
+ Updated MAX code from: https://github.com/ShikOfTheRa/scarab-osd
