@@ -63,13 +63,18 @@ uint8_t Max7456::spi_transfer(uint8_t data){
 
 
 void Max7456::writeString(const char *string, int addr){
-
-
+    char *screenp = &screen[addr];
+    while (*string) {
+        *screenp++ = *string++;
+    }
 }
 
-void Max7456::writeString_P(const char *string, int Adresse){
-
-
+void Max7456::writeString_P(const char *string, int addr){
+    char c;
+    char *screenp = &screen[addr];
+    while((c = (char)pgm_read_byte(string++)) != 0){
+        *screenp++ = c;
+    }
 }
 
 void Max7456::drawScreen(){
@@ -151,7 +156,15 @@ void Max7456::writeNVM(uint8_t char_address, uint8_t* fontData){
 }
 
 void Max7456::checkStatus(void){
+    uint8_t srdata;
+    enable();
 
+    spi_transfer(MAX7456ADD_STAT);
+    srdata = spi_transfer(0xFF);
+    srdata &= B00000011;
+    if ((MAX_screen_size == 480?B00000001:B00000010) != srdata) {
+        init();
+    }
 
 }
 
@@ -165,9 +178,9 @@ void Max7456::updateFont(void){
     for(uint8_t x = 0; x < 255; x++){
         uint8_t fontData[54];
         for(uint8_t i = 0; i < 54; i++){
-          #ifdef LOADFONT
+          
             fontData[i] = (uint8_t)pgm_read_byte(fontdata+(64*x)+i);
-            #endif
+            
         }
         writeNVM(x, &fontData[0]);
         //ledstatus=!ledstatus;
@@ -177,10 +190,9 @@ void Max7456::updateFont(void){
         else{
             digitalWrite(LEDPIN,LOW);
         }*/
-        //delay(20); // Shouldn't be needed due to status reg wait.
+        delay(20); // Shouldn't be needed due to status reg wait. Jelle: Doesn't work without the wait
     }
 }
-
 
 void Max7456::setHardwarePorts(){
     pinMode(MAX7456RESET,OUTPUT);

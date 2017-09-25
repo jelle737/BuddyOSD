@@ -3,9 +3,7 @@
 
 #include "Arduino.h"
 
-#ifdef LOADFONT
 #include "Max7456font.h"
-#endif
 
 #define DATAOUT          11 // MOSI
 #define DATAIN           12 // MISO
