@@ -141,6 +141,7 @@ void setup()
 // As simple as possible.
 
 uint8_t count = 0;
+unsigned long previousMillis = 0;
 
 void loop(){
     #ifdef LOADFONT
@@ -178,12 +179,23 @@ void loop(){
     #else //LOADFONT
 
 
-      ltmMaster.read();
-      ltmSlave.read();
-      //displayBuddy();
- //     ltmMaster.uav_rssi+ltmMaster.uav_linkquality;
-         
+        ltmMaster.read();
+        ltmSlave.read();
+        //displayBuddy();
+        //     ltmMaster.uav_rssi+ltmMaster.uav_linkquality;
+        //----calculations-----
+        unsigned long currentMillis = millis();
+        if (currentMillis - previousMillis >= 100) {
+        previousMillis = currentMillis;
+            displayCount(count++);
+            displayBuddy();
+            displayBuddyTelemetry();
+        }
+
+
+/*
        //while(true){
+           //----test osd print coordinates
           displayCount(count++);
           OSD.writeString_P(PSTR("JELLE LECOMTES BUDDY OSD"), 32);
           displayCoords();
@@ -197,8 +209,9 @@ void loop(){
           displayPitchRollHeading();
           displayPitchRollHeadingSl();
           OSD.drawScreen();
+          //-------end test osd print coordinates
           //delay(1000/30);
-     // }  
+     // }  */
 
     #endif //LOADFONT
 
@@ -206,16 +219,56 @@ void loop(){
 
 char screenBuffer[20];
 //Symbols
-#define SYM_BUDDY 0X00
+//#define SYM_BUDDY 0X00
 
 
 void displayBuddy(void){
-    screenBuffer[0] = SYM_BUDDY; //immagine SYM_BUDDY is a wing
-    OSD.writeString(screenBuffer,70);
+    float dstlon, dstlat;
+    uint16_t buddyDistance;
+    uint16_t buddyDirection;
+    int16_t buddyAltitudeDiff;
+    //float        osd_home_lon
+    //osd_home_lon = (int32_t)ltmread_u32() / 10000000.0;
+    //shrinking factor for longitude going to poles direction
+    float rads = fabs(ltmSlave.uav_lat) * 0.0174532925;
+    double scaleLongDown = cos(rads);
+    double scaleLongUp   = 1.0f/cos(rads);
+    dstlat = fabs(ltmSlave.uav_lat/ 10000000.0 - ltmMaster.uav_lat/ 10000000.0) * 111319.5;
+    dstlon = fabs(ltmSlave.uav_lon/ 10000000.0 - ltmMaster.uav_lon/ 10000000.0) * 111319.5 * scaleLongDown;
+    buddyDistance = sqrt(sq(dstlat) + sq(dstlon));
+    //DIR to Home
+    dstlon = (ltmSlave.uav_lon/ 10000000.0 - ltmMaster.uav_lon/ 10000000.0); //OffSet_X
+    dstlat = (ltmSlave.uav_lon/ 10000000.0 - ltmMaster.uav_lat/ 10000000.0) * scaleLongUp; //OffSet Y
+    buddyDirection = (270 + (atan2(dstlat, -dstlon) * 57.295775) - ltmMaster.uav_heading); //absolut home direction (rads to degrees)
+    buddyDirection %= 360;
+    buddyAltitudeDiff = ltmMaster.uav_alt - ltmSlave.uav_alt; //decimeter //should be signed
+    ItoaPadded(buddyDirection, screenBuffer,3,0);
+    ItoaPadded(buddyDistance, screenBuffer+4,4,0);
+    ItoaPadded(buddyAltitudeDiff, screenBuffer+9,4,0);
+    OSD.writeString(screenBuffer,362);
+
+    if(buddyDirection<45||buddyDirection>315){
+        uint16_t buddyDirectionPitch;
+        buddyDirectionPitch = ((atan2(buddyAltitudeDiff, buddyDistance) * 57.295775) - ltmMaster.uav_pitch);
+        buddyDirectionPitch %= 360;
+        if(buddyDirectionPitch<45||buddyDirectionPitch>315){
+            uint16_t buddyMark = 0;
+            uint16_t temp = 765.0 - (cos(ltmMaster.uav_roll * 0.0174532925) * buddyDirectionPitch + sin(ltmMaster.uav_roll * 0.0174532925) * buddyDirection);
+            buddyMark += temp%360/6*30;
+            temp = 765.0 - (cos(ltmMaster.uav_roll * 0.0174532925) * buddyDirection + sin(ltmMaster.uav_roll * 0.0174532925) * buddyDirectionPitch);
+            buddyMark += temp%360/3;
+            OSD.writeString_P(PSTR("X"), buddyMark);
+        }
+    }
 }
 
 void displayBuddyTelemetry(void){
-
+    uint16_t buddyRelDirection;
+    buddyRelDirection = (ltmSlave.uav_heading - ltmMaster.uav_heading)%360;
+    //buddySpeed = ltmSlave.uav_groundspeed
+    ItoaPadded(buddyRelDirection, screenBuffer,3,0);
+    ItoaPadded(ltmSlave.uav_groundspeed, screenBuffer+4,3,0);
+    OSD.writeString(screenBuffer,376);
 }
 
 //==master==
