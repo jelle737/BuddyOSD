@@ -24,11 +24,13 @@ LightTelemetry::~LightTelemetry(){/*Nothing to destrucht*/}
 void LightTelemetry::init(HardwareSerial* serial){
   isHardwareSerial = true;
   ltmHardwareSerial = serial;
+  c_state = IDLE;
 }
 
 void LightTelemetry::init(AltSoftSerial* serial){
   isHardwareSerial = false;
   ltmSoftwareSerial = serial;
+  c_state = IDLE;
 }
 
 uint8_t LightTelemetry::ltmread_u8()  {
@@ -49,18 +51,18 @@ uint32_t LightTelemetry::ltmread_u32() {
 
 void LightTelemetry::read() {
   
-  uint8_t c;
+  //uint8_t c;
 
-  static enum _serial_state {
+  /*static enum _serial_state {
     IDLE,
     HEADER_START1,
     HEADER_START2,
     HEADER_MSGTYPE,
     HEADER_DATA
   }
-  c_state = IDLE;
+  c_state = IDLE;*/
 
-  while (isHardwareSerial && ltmHardwareSerial->available() || !isHardwareSerial && ltmSoftwareSerial->available() ) {
+  if (isHardwareSerial && ltmHardwareSerial->available() || !isHardwareSerial && ltmSoftwareSerial->available() ) {
     c = (isHardwareSerial? char(ltmHardwareSerial->read()) : char(ltmSoftwareSerial->read()));
     //Serial.print(c);;
 
@@ -149,7 +151,7 @@ void LightTelemetry::check() {
     uav_lon = (int32_t)ltmread_u32();
     uav_groundspeedms = ltmread_u8();
     uav_groundspeed = (uint16_t) round((float)(uav_groundspeedms * 3.6f)); // convert to kmh
-    uav_alt = (int32_t)ltmread_u32()/100;//convert to m
+    uav_alt = (int32_t)ltmread_u32();//convert to m
     uint8_t ltm_satsfix = ltmread_u8();
     uav_satellites_visible         = (ltm_satsfix >> 2) & 0xFF;
     uav_fix_type                   = ltm_satsfix & 0b00000011;
