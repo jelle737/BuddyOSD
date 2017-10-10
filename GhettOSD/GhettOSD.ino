@@ -187,9 +187,12 @@ void loop(){
         unsigned long currentMillis = millis();
         if (currentMillis - previousMillis >= 100) {
         previousMillis = currentMillis;
-            displayCount(count++);
+            //displayCount(count++);
             displayBuddy();
             displayBuddyTelemetry();
+            //displayCount(count++);
+            //OSD.writeString_P(PSTR("JELLE LECOMTES BUDDY OSD"), 32);
+            OSD.drawScreen();
         }
 
 
@@ -226,11 +229,11 @@ void displayBuddy(void){
     float dstlon, dstlat;
     uint16_t buddyDistance;
     uint16_t buddyDirection;
-    int16_t buddyAltitudeDiff;
+    int buddyAltitudeDiff;
     //float        osd_home_lon
     //osd_home_lon = (int32_t)ltmread_u32() / 10000000.0;
     //shrinking factor for longitude going to poles direction
-    float rads = fabs(ltmSlave.uav_lat) * 0.0174532925;
+    float rads = fabs(ltmSlave.uav_lat/ 10000000.0) * 0.0174532925;
     double scaleLongDown = cos(rads);
     double scaleLongUp   = 1.0f/cos(rads);
     dstlat = fabs(ltmSlave.uav_lat/ 10000000.0 - ltmMaster.uav_lat/ 10000000.0) * 111319.5;
@@ -238,25 +241,39 @@ void displayBuddy(void){
     buddyDistance = sqrt(sq(dstlat) + sq(dstlon));
     //DIR to Home
     dstlon = (ltmSlave.uav_lon/ 10000000.0 - ltmMaster.uav_lon/ 10000000.0); //OffSet_X
-    dstlat = (ltmSlave.uav_lon/ 10000000.0 - ltmMaster.uav_lat/ 10000000.0) * scaleLongUp; //OffSet Y
-    buddyDirection = (270 + (atan2(dstlat, -dstlon) * 57.295775) - ltmMaster.uav_heading); //absolut home direction (rads to degrees)
+    dstlat = (ltmSlave.uav_lat/ 10000000.0 - ltmMaster.uav_lat/ 10000000.0) * scaleLongUp; //OffSet Y
+    buddyDirection = (630 + (atan2(dstlat, -dstlon) * 57.295775)- ltmMaster.uav_heading); //absolut home direction (rads to degrees) //- ltmMaster.uav_heading
     buddyDirection %= 360;
-    buddyAltitudeDiff = ltmMaster.uav_alt - ltmSlave.uav_alt; //decimeter //should be signed
-    ItoaPadded(buddyDirection, screenBuffer,3,0);
-    ItoaPadded(buddyDistance, screenBuffer+4,4,0);
-    ItoaPadded(buddyAltitudeDiff, screenBuffer+9,4,0);
-    OSD.writeString(screenBuffer,362);
-
-    if(buddyDirection<45||buddyDirection>315){
+    buddyAltitudeDiff = (ltmSlave.uav_alt - ltmMaster.uav_alt)/10; //cm //should be signed
+    ItoaPadded(buddyDirection, screenBuffer,4,0);
+    OSD.writeString(screenBuffer,361);
+    ItoaPadded(buddyDistance, screenBuffer,4,0);
+    OSD.writeString(screenBuffer,366);
+    ItoaPadded(buddyAltitudeDiff, screenBuffer,6,5);
+    OSD.writeString(screenBuffer,371);
+    /*uint16_t roll = ltmMaster.uav_roll+360;
+    roll%=360;
+    ItoaPadded(roll, screenBuffer,4,0);
+    OSD.writeString(screenBuffer,391);
+    uint16_t buddyDirectionPitch;
+    buddyDirectionPitch = (630 + (atan2(buddyDistance,buddyAltitudeDiff/10.0) * 57.295775) - ltmMaster.uav_pitch);
+    buddyDirectionPitch %= 360;
+    ItoaPadded(buddyDirectionPitch, screenBuffer,4,0);
+    OSD.writeString(screenBuffer,421);    */
+    if(buddyDirection<90||buddyDirection>270){
         uint16_t buddyDirectionPitch;
-        buddyDirectionPitch = ((atan2(buddyAltitudeDiff, buddyDistance) * 57.295775) - ltmMaster.uav_pitch);
+        buddyDirectionPitch = (630 + (atan2(buddyDistance, buddyAltitudeDiff/10.0) * 57.295775) - ltmMaster.uav_pitch);
         buddyDirectionPitch %= 360;
-        if(buddyDirectionPitch<45||buddyDirectionPitch>315){
+        if(buddyDirectionPitch<90||buddyDirectionPitch>270){
             uint16_t buddyMark = 0;
-            uint16_t temp = 765.0 - (cos(ltmMaster.uav_roll * 0.0174532925) * buddyDirectionPitch + sin(ltmMaster.uav_roll * 0.0174532925) * buddyDirection);
-            buddyMark += temp%360/6*30;
-            temp = 765.0 - (cos(ltmMaster.uav_roll * 0.0174532925) * buddyDirection + sin(ltmMaster.uav_roll * 0.0174532925) * buddyDirectionPitch);
-            buddyMark += temp%360/3;
+            //uint16_t temp = 720 + 90 + (cos((roll) * 0.0174532925) * buddyDirectionPitch + sin((roll) * 0.0174532925) * buddyDirection);
+            uint16_t temp = 720 + 90 + buddyDirectionPitch;
+            temp %=360;
+            buddyMark += temp/12*30;
+            //temp = 720 + 90 + (cos((roll) * 0.0174532925) * buddyDirection + sin((roll) * 0.0174532925) * buddyDirectionPitch);
+            temp = 720 + 90 + buddyDirection;
+            temp %= 360;
+            buddyMark += temp/6;
             OSD.writeString_P(PSTR("X"), buddyMark);
         }
     }
@@ -264,11 +281,12 @@ void displayBuddy(void){
 
 void displayBuddyTelemetry(void){
     uint16_t buddyRelDirection;
-    buddyRelDirection = (ltmSlave.uav_heading - ltmMaster.uav_heading)%360;
+    buddyRelDirection = (360 + ltmSlave.uav_heading - ltmMaster.uav_heading)%360;
     //buddySpeed = ltmSlave.uav_groundspeed
     ItoaPadded(buddyRelDirection, screenBuffer,3,0);
-    ItoaPadded(ltmSlave.uav_groundspeed, screenBuffer+4,3,0);
-    OSD.writeString(screenBuffer,376);
+    OSD.writeString(screenBuffer,378);
+    ItoaPadded(ltmSlave.uav_groundspeed, screenBuffer,3,0);
+    OSD.writeString(screenBuffer,382);
 }
 
 //==master==
@@ -418,7 +436,7 @@ void displayCount(uint8_t number){
 
 #define DECIMAL '.'
 
-char *ItoaPadded(uint32_t val, char *str, uint8_t bytes, uint8_t decimalpos)  {
+char *ItoaPadded(int32_t val, char *str, uint8_t bytes, uint8_t decimalpos)  {
   // Val to convert
   // Return String
   // Length
