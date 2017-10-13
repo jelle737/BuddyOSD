@@ -69,9 +69,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 
 // Objects and Serial definitions
 AltSoftSerial slaveSerial(8, 9);
-//OSD osd; //OSD object 
 
-//Metro osdMetro = Metro(20);  //( 50hz )
 LightTelemetry ltmMaster;
 LightTelemetry ltmSlave;
 Max7456 OSD;
