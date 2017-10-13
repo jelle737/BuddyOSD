@@ -101,6 +101,15 @@ class LightTelemetry
         uint8_t LTMreadIndex;
         uint8_t LTMframelength;
 
+        uint8_t c;
+        
+        enum _serial_state {
+          IDLE,
+          HEADER_START1,
+          HEADER_START2,
+          HEADER_MSGTYPE,
+          HEADER_DATA
+        } c_state;
 };
 
 #endif
