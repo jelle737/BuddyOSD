@@ -16,7 +16,7 @@ More information about Light Telemetry: https://github.com/iNavFlight/inav/wiki/
 ### Hardware
 
 A wiring diagram is like this:
-(docs/img/hardware.png)
+![Hardware](docs/img/hardware.png)
 
 The required parts are:
 * MinimOSD hardware (x2 if both users want buddyOSD)
