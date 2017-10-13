@@ -51,17 +51,6 @@ uint32_t LightTelemetry::ltmread_u32() {
 
 void LightTelemetry::read() {
   
-  //uint8_t c;
-
-  /*static enum _serial_state {
-    IDLE,
-    HEADER_START1,
-    HEADER_START2,
-    HEADER_MSGTYPE,
-    HEADER_DATA
-  }
-  c_state = IDLE;*/
-
   if (isHardwareSerial && ltmHardwareSerial->available() || !isHardwareSerial && ltmSoftwareSerial->available() ) {
     c = (isHardwareSerial? char(ltmHardwareSerial->read()) : char(ltmSoftwareSerial->read()));
     //Serial.print(c);;
