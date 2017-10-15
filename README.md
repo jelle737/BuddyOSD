@@ -1,4 +1,5 @@
-# Project
+# BuddyOSD
+![BuddyOSD](docs/img/Overlay.png)
 
 * Minimosd software for ground buddy osd
 * Hardware consist of (two) minimOSD boards with modification.
@@ -7,6 +8,7 @@
 * LTM telemetry is readly available in iNav, setted up in a few clicks.
 * **Hurray, this should be a working version!** Pictures/video's of proof of concept will be added.
 * **It's not a ground OSD in a way that it does not show regular OSD features, only overlays 'friend's plane'**
+* [Example gif](/docs/img/Overlay.gif) and [Example video](/docs/img/Example.mp4)]
 
 More information about Light Telemetry: https://github.com/iNavFlight/inav/wiki/Lightweight-Telemetry-(LTM)
 
