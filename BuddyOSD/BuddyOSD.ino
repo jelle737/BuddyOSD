@@ -234,7 +234,7 @@ void displayBuddy(void){
     // < sqrt(2)*FOV/2 > (360 - sqrt(2)*FOV/2  FOV=150->107 FOV=180->130
     if(buddyDirectionX<107||buddyDirectionX>253){
         uint16_t buddyDirectionY;
-        buddyDirectionY = (630 + (atan2(buddyDistance, buddyAltitudeDiff/10.0) * 57.295775) - ltmMaster.uav_pitch);
+        buddyDirectionY = (720 + (atan2(-buddyAltitudeDiff/10.0, buddyDistance) * 57.295775) - ltmMaster.uav_pitch);
         buddyDirectionY %= 360;
         uint16_t roll = ltmMaster.uav_roll+360;
         roll %= 360;
@@ -243,7 +243,7 @@ void displayBuddy(void){
         if(buddyDirectionXAfterRoll < 150){ // <FOV FOV=150->150 FOV=180->180
             uint16_t buddyDirectionYAfterRoll = 720 + 75 + (buddyDirectionY * cos((roll) * 0.0174532925) - buddyDirectionX * sin((roll) * 0.0174532925)); //+FOV/2 FOV=150->75 FOV=180->90
             buddyDirectionYAfterRoll %= 360;
-            if(buddyDirectionYAfterRoll < 130){ // <FOV FOV=150->150 FOV=180->180// <FOV FOV=150->150 FOV=180->180
+            if(buddyDirectionYAfterRoll < 150){ // <FOV FOV=150->150 FOV=180->180// <FOV FOV=150->150 FOV=180->180
                 uint16_t buddyMark = buddyDirectionXAfterRoll/5 + buddyDirectionYAfterRoll/10*30; 
                 // /FOV/30 (only integers, round up) FOV=180->/6 FOV=150->/5                    // /FOV/16(=PAL=480/30) or /FOV/12(=NTSC=390/30) (only integers, round up) FOV=180->/12 FOV=150->/10
                 OSD.writeString_P(PSTR("X"), buddyMark);
