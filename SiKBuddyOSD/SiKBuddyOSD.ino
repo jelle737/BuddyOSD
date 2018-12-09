@@ -175,6 +175,7 @@ void loop(){
             OSD.drawScreen();
             if(newLtmMaster){
               //retransmit relevant message to slave
+              ltmMaster.transmit(&Serial);
             }
             newLtmMaster = false;
             newLtmSiK = false;
