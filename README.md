@@ -29,7 +29,7 @@ LTM telemetry coming from the (iNav) FC is fed to the MinimOSD hardware (over th
 ### Hardware - Air based SiK telemetry
 
 A wiring diagram is like this:
-![Hardware](docs/img/SiK Hardware.png)
+![SiK Hardware](docs/img/SiK Hardware.png)
 
 The required parts are:
 * MinimOSD hardware x2 (for both users)
