@@ -24,16 +24,16 @@ LightTelemetry::~LightTelemetry(){/*Nothing to destrucht*/}
 void LightTelemetry::init(HardwareSerial* serial){
   isHardwareSerial = true;
   ltmHardwareSerial = serial;
-  LTMserialBuffer[0]="$";
-  LTMserialBuffer[1]="T";
+  LTMserialBuffer[0]='$';
+  LTMserialBuffer[1]='T';
   c_state = IDLE;
 }
 
 void LightTelemetry::init(AltSoftSerial* serial){
   isHardwareSerial = false;
   ltmSoftwareSerial = serial;
-  LTMserialBuffer[0]="$";
-  LTMserialBuffer[1]="T";
+  LTMserialBuffer[0]='$';
+  LTMserialBuffer[1]='T';
   c_state = IDLE;
 }
 
@@ -54,7 +54,7 @@ uint32_t LightTelemetry::ltmread_u32() {
 }
 
 bool LightTelemetry::read() {
-  
+  bool newMSG = false;
   if (isHardwareSerial && ltmHardwareSerial->available() || !isHardwareSerial && ltmSoftwareSerial->available() ) {
     c = (isHardwareSerial? char(ltmHardwareSerial->read()) : char(ltmSoftwareSerial->read()));
     //Serial.print(c);;
@@ -105,8 +105,8 @@ bool LightTelemetry::read() {
       LTMreceiverIndex = 2;
       LTMserialBuffer[LTMreceiverIndex++] = c;
     }
-    if (c_state == HEADER_MSGTYPE) {
-      if (LTMreceiverIndex < 4) {
+    else if (c_state == HEADER_MSGTYPE) {
+      if (LTMreceiverIndex < 3) {
         LTMrcvChecksum = c;
       } else {
         LTMrcvChecksum ^= c;
@@ -118,18 +118,16 @@ bool LightTelemetry::read() {
           LTM_pkt_ok++;       //increase packet ok counter
           check();
           c_state = IDLE;
-          return true;
+          newMSG = true;
         } else {              // wrong checksum, drop packet
           LTM_pkt_ko++;       //increase packet dropped counter
           c_state = IDLE;
-          return false;
 
         }
-      }else{
-        return false;
       }
     }
   }
+  return newMSG;
 }
 
 // --------------------------------------------------------------------------------------
@@ -203,8 +201,10 @@ void LightTelemetry::check() {
 }
 
 void LightTelemetry::transmit(HardwareSerial* serial){
-  for(LTMwriteIndex = 0;LTMwriteIndex < LTMframelength; LTMwriteIndex++ ){
-    serial->write(LTMserialBuffer[LTMwriteIndex]);
+  if(LTMserialBuffer[2]=='G'||LTMserialBuffer[2]=='A'){
+    for(LTMwriteIndex = 0;LTMwriteIndex < LTMframelength; LTMwriteIndex++ ){
+      serial->write(LTMserialBuffer[LTMwriteIndex]);
+    }
   }
 }
 

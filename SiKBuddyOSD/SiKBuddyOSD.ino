@@ -63,7 +63,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 
 //OSD Hardware 
 //#define MinimOSD
-#define TELEMETRY_SPEED_MASTER  9600  // How fast our master LTM telemetry is coming to Serial port
+#define TELEMETRY_SPEED_MASTER  2400  // How fast our master LTM telemetry is coming to Serial port
 #define TELEMETRY_SPEED_SIK 57600 // How fast our slave LTM telemetry is coming to Serial port
 
 
@@ -125,6 +125,8 @@ uint8_t count = 0;
 unsigned long previousMillis = 0;
 bool newLtmMaster = false;
 bool newLtmSiK = false;
+uint8_t statusMaster = 0;
+uint8_t statusSiK = 0;
 
 void loop(){
     #ifdef LOADFONT
@@ -172,6 +174,9 @@ void loop(){
             displayPitchRollHeading();
             displayPitchRollHeadingSl();            
             */
+            statusMaster = displayStatus(statusMaster, newLtmMaster, 388);
+            statusSiK = displayStatus(statusSiK, newLtmSiK, 389);
+            
             OSD.drawScreen();
             if(newLtmMaster){
               //retransmit relevant message to slave
@@ -191,6 +196,25 @@ char screenBuffer[20];
 #define SYM_DST 0xB5
 #define SYM_ARROW 0x60 //+16
 
+
+uint8_t displayStatus(uint8_t numberStatus, bool newStatus,int locationStatus){
+  numberStatus = (newStatus?(numberStatus+1)%4:numberStatus);
+  switch (numberStatus){
+    case 0:
+      OSD.writeString_P(PSTR("-"), locationStatus);
+      break;
+    case 1:
+      OSD.writeString_P(PSTR("\\"), locationStatus);
+      break;
+    case 2:
+      OSD.writeString_P(PSTR("|"), locationStatus);
+      break;
+    case 3:
+      OSD.writeString_P(PSTR("/"), locationStatus);
+      break;
+  }
+  return numberStatus;
+}
 
 void displayBuddy(void){
     float dstlon, dstlat;
