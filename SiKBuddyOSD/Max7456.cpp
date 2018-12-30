@@ -69,6 +69,18 @@ void Max7456::writeString(const char *string, int addr){
     }
 }
 
+void Max7456::writeChar(uint8_t x, uint8_t y, uint8_t c){
+    screen[x+y*30] = c;
+}
+
+void Max7456::writeString2(uint8_t x, uint8_t y, char *s){
+    char *screenp = &screen[x+y*30];
+    while (*s) {
+        *screenp++ = *s;
+        *s++ = '\0';
+    }
+}
+
 void Max7456::writeString_P(const char *string, int addr){
     char c;
     char *screenp = &screen[addr];

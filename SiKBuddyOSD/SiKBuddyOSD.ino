@@ -5,7 +5,8 @@ Program  : BuddyOSD
 Version  : V1.0
 Author(s): Jelle L
 
-BuddyOSD is forked from GhettOSD. Mavlink support has been removed. 
+BuddyOSD is forked from GhettOSD. Mavlink support has been removed, it supports LTM telemetry.
+some code highly based on iNav.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,7 +63,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/>
 /* ***************** DEFINITIONS *******************/
 
 //OSD Hardware 
-//#define MinimOSD
 #define TELEMETRY_SPEED_MASTER  2400  // How fast our master LTM telemetry is coming to Serial port
 #define TELEMETRY_SPEED_SIK 57600 // How fast our slave LTM telemetry is coming to Serial port
 
@@ -80,34 +80,8 @@ Max7456 OSD;
 void setup() 
 {
     OSD.init();
-//    pinMode(MAX7456_SELECT,  OUTPUT); // OSD CS
-
     Serial.begin(TELEMETRY_SPEED_SIK);
     masterSerial.begin(TELEMETRY_SPEED_MASTER); 
-
-    // Prepare OSD for displaying 
-//    unplugSlaves();
- 
-
-    // Check EEPROM to see if we have initialized it already or not
-    // also checks if we have new version that needs EEPROM reset
-//    if(readEEPROM(CHK1) + readEEPROM(CHK2) != VER) {
-//        osd.setPanel(6,9);
-//        osd.openPanel();
-//        osd.printf_P(PSTR("Missing/Old Config")); 
-//        osd.closePanel();
-        //InitializeOSD();
-//    }
-
-    // Get correct panel settings from EEPROM
-//    readSettings();
-//    for(panel = 0; panel < npanels; panel++) readPanelSettings();
-//    panel = 0; //set panel to 0 to start in the first navigation screen
-//    delay(2000);
-//    Serial.flush();
-
-    // House cleaning, clear display and enable timers
-//    osd.clear();
     ltmMaster.init(&masterSerial);
     ltmSiK.init(&Serial);
 
@@ -145,7 +119,7 @@ void loop(){
         delay(10000);
         uint8_t count = 0;
         while(true){
-            displayCount(count++);
+//            displayCount(count++);
             OSD.writeString_P(PSTR("UPDATE COMPLETE"), 32);
             OSD.drawScreen();
             delay(200);
@@ -153,27 +127,17 @@ void loop(){
     #else //LOADFONT
         newLtmMaster = ltmMaster.read();
         newLtmSiK = ltmSiK.read();
-        /*unsigned long currentMillis = millis();
-        if (currentMillis - previousMillis >= 80) {
-        previousMillis = currentMillis;*/
         if (newLtmMaster || newLtmSiK){
-            displayBuddy();
-            displayBuddyTelemetry();
-            //displayCount(count++);
-            //OSD.writeString_P(PSTR("JELLE LECOMTES BUDDY OSD"), 32);
+            //displayBuddy();
+            //displayBuddyTelemetry();
+            displayBuddyRadar();
+            //displayBuddySpeed();
             //testdata here:
             /*
             displayCoords();
             displaySats();
             displayRSSI();
-            displayBat();
-            displayCoordsSl();
-            displaySatsSl();
-            displayRSSISl();
-            displayBatSl();
-            displayPitchRollHeading();
-            displayPitchRollHeadingSl();            
-            */
+            displayBat();*/
             statusMaster = displayStatus(statusMaster, newLtmMaster, 388);
             statusSiK = displayStatus(statusSiK, newLtmSiK, 389);
             
@@ -189,13 +153,8 @@ void loop(){
 
 }
 
-char screenBuffer[20];
-//Symbols
-#define SYM_KMH 0xA1
-#define SYM_ALT 0xB1
-#define SYM_DST 0xB5
-#define SYM_ARROW 0x60 //+16
-
+//char screenBuffer[20];
+char buff[32];
 
 uint8_t displayStatus(uint8_t numberStatus, bool newStatus,int locationStatus){
   numberStatus = (newStatus?(numberStatus+1)%4:numberStatus);
@@ -216,6 +175,7 @@ uint8_t displayStatus(uint8_t numberStatus, bool newStatus,int locationStatus){
   return numberStatus;
 }
 
+/*
 void displayBuddy(void){
     float dstlon, dstlat;
     uint16_t buddyDistance;
@@ -281,12 +241,13 @@ void displayBuddy(void){
                 OSD.writeString(screenBuffer,41);
                 ItoaPadded(buddyDirectionYAfterRoll/12, screenBuffer,4,0);
                 OSD.writeString(screenBuffer,71);
-                */
+                *//*
             }
         }
     }
-}
+}*/
 
+/*
 void displayBuddyTelemetry(void){
     uint16_t buddyRelDirection;
     buddyRelDirection = (360 + ltmSiK.uav_heading - ltmMaster.uav_heading)%360;
@@ -298,9 +259,216 @@ void displayBuddyTelemetry(void){
     screenBuffer[4]=0;
     OSD.writeString(screenBuffer,382);
 }
+*/
+
+
+void displayBuddyRadar(void){
+    const uint8_t minX = 1;
+    const uint8_t maxX = 28;
+    const uint8_t minY = 1;
+    const uint8_t maxY = 14;
+    const uint8_t midX = 15;
+    const uint8_t midY = 8;
+
+    const int charWidth = 12;
+    const int charHeight = 18;
+
+    float rads = fabs(ltmMaster.uav_lat/ 10000000.0) * 0.0174532925;
+    double GPS_scaleLonDown = cos(rads);
+    float dLat = (ltmSiK.uav_lat  - ltmMaster.uav_lat);
+    float dLon = (float)(ltmSiK.uav_lon  - ltmMaster.uav_lon) * GPS_scaleLonDown;
+    uint32_t buddyDistance = sqrt(sq(dLat) + sq(dLon)) * 1.113195 / 100; //[m]
+    int32_t dir = (int32_t)(360 + 90 + (atan2(-dLat, dLon)) / 3.14159265358979323846 * 180.0)%360; //[°]      
+    int32_t buddyDirection = (360 + dir - ltmMaster.uav_heading + 180)%360;
+
+    OSD.writeChar(minX, minY, SYM_SCALE); //175
+    OSD.writeChar(midX, midY, SYM_ARROW); //0x60 = 96
+
+    uint32_t scale = 10;//[m] // 10m as initial scale
+    if (buddyDistance > scale) {
+        float poiAngle = buddyDirection*3.14159265358979323846/180.0;
+        float poiSin = sin(poiAngle);
+        float poiCos = cos(poiAngle);
+
+        // Now start looking for a valid scale that lets us draw everything
+        for (int ii = 0; ii < 50; ii++, scale *= 2) {
+            // Calculate location of the aircraft in map
+            int points = buddyDistance / (1.0 * scale / charHeight);
+        
+            float pointsX = 1.0 * points * poiSin;
+            int poiX = midX - round(pointsX / charWidth);
+            if (poiX < minX || poiX > maxX) {
+                continue;
+            }
+
+            float pointsY = 1.0 * points * poiCos;
+            int poiY = midY + round(pointsY / charHeight);
+            if (poiY < minY || poiY > maxY) {
+                continue;
+            }
+
+            if (poiX == midX && poiY == midY) {
+                // We're over the map center symbol, so we would be drawing
+                // over it even if we increased the scale. No reason to run
+                // this loop 50 times.
+                uint16_t buddyRelativeDirection = (360 + ltmSiK.uav_heading - ltmMaster.uav_heading)%360;
+                OSD.writeChar(poiX, poiY, SYM_ARROW+((uint8_t)((buddyRelativeDirection+11)/22.5))%16);
+                break;
+            }
+
+            uint16_t buddyRelativeDirection = (360 + ltmSiK.uav_heading - ltmMaster.uav_heading)%360;
+            OSD.writeChar(poiX, poiY, SYM_ARROW+((uint8_t)((buddyRelativeDirection+11)/22.5))%16);
+            break;
+        }
+    }
+
+    // Draw the used scale
+    if(osdFormatCentiNumber(buff, scale * 100, 1000, 0, 2, 3)){
+        buff[3] = SYM_KM;
+    }else{
+        buff[3] = SYM_M;
+    }
+    buff[4] = '\0';
+    OSD.writeString2(minX + 1, minY, buff);
+
+    //Draw distance
+    if (osdFormatCentiNumber(buff + 1, buddyDistance*100, 1000, 0, 2, 3)) {
+        buff[0] = SYM_DIST_KM;
+    } else {
+        buff[0] = SYM_DIST_M;
+    }
+    OSD.writeString2(4,12,buff);
+
+    //Draw altitudedifference
+    int buddyAltitudeDifference = ltmSiK.uav_alt - ltmMaster.uav_alt;
+    if (osdFormatCentiNumber(buff+1, buddyAltitudeDifference, 1000, 0, 2, 3)) {
+        // Scaled to km
+        buff[0] = SYM_ALT_KM;
+    } else {
+        // Formatted in m
+        buff[0] = SYM_ALT_M;
+    }
+    OSD.writeString2(9,12,buff);
+
+    //Draw speed
+    osdFormatCentiNumber(buff, ltmSiK.uav_groundspeed * 100, 0, 0, 3, 3);
+    buff[3] = SYM_KMH;
+    buff[4] = '\0';
+    OSD.writeString2(14,12,buff);
+    
+}
+
+/**
+ * Formats a number given in cents, to support non integer values
+ * without using floating point math. Value is always right aligned
+ * and spaces are inserted before the number to always yield a string
+ * of the same length. If the value doesn't fit into the provided length
+ * it will be divided by scale and true will be returned.
+ */
+static bool osdFormatCentiNumber(char *buff, int32_t centivalue, uint32_t scale, int maxDecimals, int maxScaledDecimals, int length){
+    char *ptr = buff;
+    char *dec;
+    int decimals = maxDecimals;
+    bool negative = false;
+    bool scaled = false;
+
+    buff[length] = '0';
+
+    if (centivalue < 0) {
+        negative = true;
+        centivalue = -centivalue;
+        length--;
+    }
+
+    int32_t integerPart = centivalue / 100;
+    // 3 decimal digits
+    int32_t millis = (centivalue % 100) * 10;
+
+    int digits = digitCount(integerPart);
+    int remaining = length - digits;
+
+    if (remaining < 0 && scale > 0) {
+        // Reduce by scale
+        scaled = true;
+        decimals = maxScaledDecimals;
+        integerPart = integerPart / scale;
+        // Multiply by 10 to get 3 decimal digits
+        millis = ((centivalue % (100 * scale)) * 10) / scale;
+        digits = digitCount(integerPart);
+        remaining = length - digits;
+    }
+
+    // 3 decimals at most
+    decimals = (remaining < (decimals < 3?decimals:3)?remaining:(decimals < 3?decimals:3));
+    remaining -= decimals;
+
+    // Done counting. Time to write the characters.
+
+    // Write spaces at the start
+    while (remaining > 0) {
+        *ptr = SYM_BLANK;
+        ptr++;
+        remaining--;
+    }
+
+    // Write the minus sign if required
+    if (negative) {
+        *ptr = '-';
+        ptr++;
+    }
+    // Now write the digits.
+    ui2a(integerPart, 10, 0, ptr);
+    ptr += digits;
+    if (decimals > 0) {
+        *(ptr-1) += SYM_ZERO_HALF_TRAILING_DOT - '0';
+        dec = ptr;
+        int factor = 3; // we're getting the decimal part in millis first
+        while (decimals < factor) {
+            factor--;
+            millis /= 10;
+        }
+        int decimalDigits = digitCount(millis);
+        while (decimalDigits < decimals) {
+            decimalDigits++;
+            *ptr = '0';
+            ptr++;
+        }
+        ui2a(millis, 10, 0, ptr);
+        *dec += SYM_ZERO_HALF_LEADING_DOT - '0';
+    }
+    return scaled;
+}
+
+int digitCount(int32_t value){
+    int digits = 1;
+    value/=10;
+    while(value){
+        digits++;
+        value/=10;
+    }
+    return digits;
+}
+
+void ui2a(unsigned int num, unsigned int base, int uc, char *bf){
+    int n = 0;
+    unsigned int d = 1;
+    while (num / d >= base)
+        d *= base;
+    while (d != 0) {
+        int dgt = num / d;
+        num %= d;
+        d /= base;
+        if (n || dgt > 0 || d == 0) {
+            *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+            ++n;
+        }
+    }
+    *bf = 0;
+}
+
 
 //==master==
-
+/*
 void displayPitchRollHeading(void){
     for(int i=0;i<20; i++){
       screenBuffer[i]=' ';
@@ -317,123 +485,32 @@ void displayPitchRollHeading(void){
 }
 
 void displayCoords(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    ItoaPadded(ltmMaster.uav_lat, screenBuffer,10,3);
-    OSD.writeString(screenBuffer,123);
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    ItoaPadded(ltmMaster.uav_lon, screenBuffer,10,3);
-    OSD.writeString(screenBuffer,153);
+    ItoaPadded(ltmMaster.uav_lat, buff,10,3);
+    OSD.writeString2(3, 4, buff);
+    ItoaPadded(ltmMaster.uav_lon, buff,10,3);
+    OSD.writeString2(3, 5, buff);
 }
 
 void displaySats(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='S';
-    screenBuffer[1]='A';
-    screenBuffer[2]='T';
-    screenBuffer[3]='S';
-    ItoaPadded(ltmMaster.uav_satellites_visible, screenBuffer+5,2,0);
-    OSD.writeString(screenBuffer,190);
+    buff[0] = SYM_SAT_L;
+    buff[1] = SYM_SAT_R;
+    ItoaPadded(ltmMaster.uav_satellites_visible, buff+2,2,0);
+    OSD.writeString2(10,6,buff);
 }
 
 void displayBat(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='B';
-    screenBuffer[1]='A';
-    screenBuffer[2]='T';
-    ItoaPadded(ltmMaster.uav_bat/100, screenBuffer+4,4,3);
-    OSD.writeString(screenBuffer,198);  
+    buff[0] = SYM_BATT_FULL + constrain((ltmMaster.uav_bat - 144) * 100 / (168 - 144),0,100);
+    buff[1] = '\0';
+    OSD.writeString2(18, 6, buff);
+    ItoaPadded(ltmMaster.uav_bat/100, buff,4,3);
+    OSD.writeString2(19, 6, buff);
 }
 
 void displayRSSI(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='R';
-    screenBuffer[1]='S';
-    screenBuffer[2]='S';
-    screenBuffer[3]='I';
-    ItoaPadded(ltmMaster.uav_rssi, screenBuffer+5,2,0);
-    OSD.writeString(screenBuffer,182);
+    buff[0] = SYM_RSSI;
+    ItoaPadded(ltmSiK.uav_rssi, buff+1,2,0);
+    OSD.writeString2(2,6,buff);
 }
-
-
-//====slave/buddy====
-
-void displayPitchRollHeadingSl(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='P';
-    ItoaPadded(ltmSiK.uav_pitch, screenBuffer+2,3,0);
-    OSD.writeString(screenBuffer,332);
-    screenBuffer[0]='R';
-    ItoaPadded(ltmSiK.uav_roll, screenBuffer+2,3,0);
-    OSD.writeString(screenBuffer,338);
-    screenBuffer[0]='H';
-    ItoaPadded(ltmSiK.uav_heading, screenBuffer+2,3,0);
-    OSD.writeString(screenBuffer,344);
-}
-
-void displayCoordsSl(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    ItoaPadded(ltmSiK.uav_lat, screenBuffer,10,3);
-    OSD.writeString(screenBuffer,243);
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    ItoaPadded(ltmSiK.uav_lon, screenBuffer,10,3);
-    OSD.writeString(screenBuffer,273);
-}
-
-void displaySatsSl(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='S';
-    screenBuffer[1]='A';
-    screenBuffer[2]='T';
-    screenBuffer[3]='S';
-    ItoaPadded(ltmSiK.uav_satellites_visible, screenBuffer+5,2,0);
-    OSD.writeString(screenBuffer,310);
-}
-
-void displayBatSl(void){
-    for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='B';
-    screenBuffer[1]='A';
-    screenBuffer[2]='T';
-    ItoaPadded(ltmSiK.uav_bat/100, screenBuffer+4,4,3);
-    OSD.writeString(screenBuffer,318);  
-}
-
-void displayRSSISl(void){
-      for(int i=0;i<20; i++){
-      screenBuffer[i]=' ';
-    }
-    screenBuffer[0]='R';
-    screenBuffer[1]='S';
-    screenBuffer[2]='S';
-    screenBuffer[3]='I';
-    ItoaPadded(ltmSiK.uav_rssi, screenBuffer+5,2,0);
-    OSD.writeString(screenBuffer,302);
-}
-
-
-
-
-
 
 
 void displayCount(uint8_t number){
@@ -476,3 +553,4 @@ char *ItoaPadded(int32_t val, char *str, uint8_t bytes, uint8_t decimalpos)  {
     str[--bytes] = ' ';
   return str;
 }
+*/

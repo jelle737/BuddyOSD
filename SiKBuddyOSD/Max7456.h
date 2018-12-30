@@ -71,6 +71,27 @@
 #define VIDEO_MODE_PAL 0x40
 #define VIDEO_MODE_NTSC 0x00
 
+//Symbols
+#define SYM_BLANK 0x20
+#define SYM_KMH 0xA1
+#define SYM_ALT 0xB1
+#define SYM_DST 0xB5
+#define SYM_ARROW 0x60 //+16
+#define SYM_M 185
+#define SYM_KM 186
+#define SYM_SCALE 175
+#define SYM_RSSI 0x01
+#define SYM_SAT_L 0x1E
+#define SYM_SAT_R 0x1F
+#define SYM_BATT_FULL 0x90
+#define SYM_COLON 0x2D
+#define SYM_ZERO_HALF_TRAILING_DOT 192
+#define SYM_ZERO_HALF_LEADING_DOT 208
+#define SYM_ALT_M       177
+#define SYM_ALT_KM      178
+#define SYM_DIST_M      181
+#define SYM_DIST_KM     182
+
 
 class Max7456{
     public:
@@ -79,6 +100,8 @@ class Max7456{
         void init();
         uint8_t spi_transfer(uint8_t data);
         void writeString(const char *string, int addr);
+        void writeChar(uint8_t x, uint8_t y, uint8_t c);
+        void Max7456::writeString2(uint8_t x, uint8_t y, char *s);
         void writeString_P(const char *string, int Adresse);
         void drawScreen();
         void send(uint8_t add, uint8_t data);
