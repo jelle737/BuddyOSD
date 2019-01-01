@@ -138,8 +138,8 @@ void loop(){
             displaySats();
             displayRSSI();
             displayBat();*/
-            statusMaster = displayStatus(statusMaster, newLtmMaster, 388);
-            statusSiK = displayStatus(statusSiK, newLtmSiK, 389);
+            statusMaster = displayStatus(statusMaster, newLtmMaster, 27);
+            statusSiK = displayStatus(statusSiK, newLtmSiK, 28);
             
             OSD.drawScreen();
             if(newLtmMaster){
@@ -155,23 +155,11 @@ void loop(){
 
 //char screenBuffer[20];
 char buff[32];
+char statusSymbol[4] = {'-','\\','|','/'};
 
 uint8_t displayStatus(uint8_t numberStatus, bool newStatus,int locationStatus){
   numberStatus = (newStatus?(numberStatus+1)%4:numberStatus);
-  switch (numberStatus){
-    case 0:
-      OSD.writeString_P(PSTR("-"), locationStatus);
-      break;
-    case 1:
-      OSD.writeString_P(PSTR("\\"), locationStatus);
-      break;
-    case 2:
-      OSD.writeString_P(PSTR("|"), locationStatus);
-      break;
-    case 3:
-      OSD.writeString_P(PSTR("/"), locationStatus);
-      break;
-  }
+  OSD.writeChar(locationStatus, 13, statusSymbol[numberStatus]);
   return numberStatus;
 }
 
@@ -264,11 +252,11 @@ void displayBuddyTelemetry(void){
 
 void displayBuddyRadar(void){
     const uint8_t minX = 1;
+    const uint8_t midX = 14;
     const uint8_t maxX = 28;
     const uint8_t minY = 1;
     const uint8_t maxY = 14;
-    const uint8_t midX = 15;
-    const uint8_t midY = 8;
+    const uint8_t midY = 7;
 
     const int charWidth = 12;
     const int charHeight = 18;
@@ -337,7 +325,7 @@ void displayBuddyRadar(void){
     } else {
         buff[0] = SYM_DIST_M;
     }
-    OSD.writeString2(4,12,buff);
+    OSD.writeString2(4,13,buff);
 
     //Draw altitudedifference
     int buddyAltitudeDifference = ltmSiK.uav_alt - ltmMaster.uav_alt;
@@ -348,14 +336,14 @@ void displayBuddyRadar(void){
         // Formatted in m
         buff[0] = SYM_ALT_M;
     }
-    OSD.writeString2(9,12,buff);
+    OSD.writeString2(9,13,buff);
 
     //Draw speed
     osdFormatCentiNumber(buff, ltmSiK.uav_groundspeed * 100, 0, 0, 3, 3);
     buff[3] = SYM_KMH;
     buff[4] = '\0';
-    OSD.writeString2(14,12,buff);
-    
+    OSD.writeString2(14,13,buff);
+
 }
 
 /**
