@@ -95,8 +95,8 @@ void setup()
 // Mother of all happenings, The loop()
 // As simple as possible.
 
-uint8_t count = 0;
 unsigned long previousMillis = 0;
+unsigned long currentMillis = 0;
 bool newLtmMaster = false;
 bool newLtmSiK = false;
 uint8_t statusMaster = 0;
@@ -105,45 +105,45 @@ uint8_t statusSiK = 0;
 void loop(){
     #ifdef LOADFONT
         OSD.writeString_P(PSTR("DO NOT POWER OFF"), 32);
-        OSD.drawScreen();      
-        delay(3000);
-        OSD.displayFont();  
+        OSD.drawScreen();
+        previousMillis = millis();
+        while(millis() - previousMillis < 3000){
+        }
+        OSD.displayFont();
         OSD.writeString_P(PSTR("SCREEN WILL GO BLANK"), 32);
         OSD.drawScreen();
-        delay(3000);
+        previousMillis = millis();
+        while(millis() - previousMillis < 3000){
+        }
         OSD.updateFont();
-        OSD.init(); 
+        OSD.init();
         OSD.displayFont();
         OSD.writeString_P(PSTR("UPDATE COMPLETE"), 32);
         OSD.drawScreen();
-        delay(10000);
-        uint8_t count = 0;
         while(true){
-//            displayCount(count++);
-            OSD.writeString_P(PSTR("UPDATE COMPLETE"), 32);
-            OSD.drawScreen();
-            delay(200);
         }
     #else //LOADFONT
         newLtmMaster = ltmMaster.read();
         newLtmSiK = ltmSiK.read();
         if (newLtmMaster || newLtmSiK){
-            //displayBuddy();
-            //displayBuddyTelemetry();
-            displayBuddyRadar();
-            //displayBuddySpeed();
-            //testdata here:
-            /*
-            displayCoords();
-            displaySats();
-            displayRSSI();
-            displayBat();*/
+            currentMillis = millis();
+            if(newLtmSiK){
+                //new message from slave, update time
+                previousMillis = currentMillis;
+            }
+
+            if(currentMillis - previousMillis < 5000){
+                //only show the radar if last new message from buddy was < 5s ago. After +-5 seconds of inactivity the radar disapears, if there was an update from the Master.
+                displayBuddyRadar();
+            }
+
+            //status icons
             statusMaster = displayStatus(statusMaster, newLtmMaster, 27);
             statusSiK = displayStatus(statusSiK, newLtmSiK, 28);
-            
+
             OSD.drawScreen();
-            if(newLtmMaster){
-              //retransmit relevant message to slave
+            if(newLtmMaster && ltmMaster.uav_satellites_visible > 5){
+              //retransmit relevant message to slave only if GPS>=6.
               ltmMaster.transmit(&Serial);
             }
             newLtmMaster = false;
